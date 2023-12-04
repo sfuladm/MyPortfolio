@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>3D Model with Animation</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #overlay-text, #bottom-text {
+            position: absolute;
+            color: white;
+            font-weight: bold;
+            margin: 20px;
+            font-family: Tahoma, serif;
+            font-size: 20px;
+            text-align: center;
+            width: 100%;
+            -webkit-text-stroke-width: 1px;
+            -webkit-text-stroke-color: black;
+            
+        }
+
+        #overlay-text {
+            top: 30px;
+            
+        }
+
+        #bottom-text {
+            bottom: 30px;
+            margin: 20px;
+            font-size: 50px;
+            text-shadow: 0 -1px 0 #fff, 0 1px 0 #2e2e2e, 0 2px 0 #2c2c2c, 0 3px 0 #2a2a2a, 0 4px 0 #282828, 0 5px 0 #262626, 0 6px 0 #242424, 0 7px 0 #222, 0 8px 0 #202020, 0 9px 0 #1e1e1e, 0 10px 0 #1c1c1c, 0 11px 0 #1a1a1a, 0 12px 0 #181818, 0 13px 0 #161616, 0 14px 0 #141414, 0 15px 0 #121212, 0 22px 60px rgba(0,0,0,0.9);
+            word-spacing: px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="overlay-text"></div>
+
+    <!-- New div for bottom text -->
+    <div id="bottom-text">
+        <strong>{[pORTFOLIO]}</strong>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.131.2/build/three.module.js';
+        import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.131.2/examples/jsm/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'https://cdn.skypack.dev/three@0.131.2/examples/jsm/controls/OrbitControls.js';
+
+        let camera, scene, renderer, controls, mixer;
+        let overlayTextElement, bottomTextElement;
+
+        init();
+        animate();
+
+        function init() {
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 50);
+            camera.position.set(0, 4, 18);
+
+            scene = new THREE.Scene();
+
+            // Load the background image
+            const textureLoader = new THREE.TextureLoader();
+            const backgroundImage = textureLoader.load('Portfolio.png');
+            scene.background = backgroundImage;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.63);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(0, 3, 5);
+            scene.add(directionalLight);
+
+            const gltfLoader = new GLTFLoader();
+            gltfLoader.load(
+                'realMaleFbx.glb',
+                function (gltf) {
+                    const object = gltf.scene;
+                    const box = new THREE.Box3().setFromObject(object);
+                    const center = box.getCenter(new THREE.Vector3());
+
+                    object.position.y -= 5;
+                    object.rotation.y -= Math.PI / 2;
+                    object.scale.set(5.0, 5.0, 5.0);
+
+                    scene.add(object);
+
+                    mixer = new THREE.AnimationMixer(object);
+
+                    gltf.animations.forEach((clip) => {
+                        const action = mixer.clipAction(clip);
+                        action.timeScale = 1;
+                        action.play();
+                        action.loop = THREE.LoopOnce;
+                        action.clampWhenFinished = true;
+                    });
+                },
+                undefined,
+                function (error) {
+                    console.error('Error loading GLTF model:', error);
+                }
+            );
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.rotateSpeed = 0.5;
+            controls.enableZoom = false;
+
+            overlayTextElement = document.getElementById('overlay-text');
+            bottomTextElement = document.getElementById('bottom-text');
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (mixer) {
+                mixer.update(0.01);
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+
+            // Update overlay text with current date
+            updateOverlayText();
+
+            // Update bottom text
+            updateBottomText();
+        }
+
+        function updateOverlayText() {
+            const currentDate = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = currentDate.toLocaleDateString('en-US', options);
+
+            overlayTextElement.innerText = formattedDate;
+        }
+
+        function updateBottomText() {
+            // You can update the bottom text dynamically if needed
+            // For example, you can use the current frame or other parameters
+            bottomTextElement.innerText = "[PORTFOLIO]";
+        }
+    </script>
+</body>
+</html>
